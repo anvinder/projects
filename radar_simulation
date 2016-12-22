@@ -1,0 +1,473 @@
+disp('enter choice')
+ 
+    disp('1= ellipse')
+    disp('2= circular plate')
+    disp('3=cylinder')
+    disp('4=isosceles')
+    disp('  ')
+  
+    disp('if you dont want to calculate the rcs then u can find out the losses in curred during varoius radar stages.')
+    
+    disp( ' ')
+    disp('5=velocity loss')
+    disp('6=scan loss')
+    disp(' ')
+    disp(' or you can move on to jamming considerations.')
+    disp('7=self screeing jammer requirement')
+    disp('8=radar range requirement')
+    disp('9=stand off jamming requirements')
+    disp('  ')
+    disp('  ')
+    disp('10=kaiser window')
+    disp('  ')
+    disp(' ')
+    for choice=1:10
+        choice=input('input choice');
+    if (choice==1)
+        disp('ellipse')
+       
+% Enter the ellpsiod size
+a=input('input a');
+b=input('input b');
+c=input('input c');
+phi=input('input phi');
+% Enter angle phi
+sin_phi_s = sin(phi)^2;
+cos_phi_s = cos(phi)^2;
+% Generate aspect angle vector
+theta = 0.:.05:180;
+theta = (theta .* pi) ./ 180.;
+if(a ~= b & a ~= c)
+   rcs = (pi * a^2 * b^2 * c^2) ./ (a^2 * cos_phi_s .* (sin(theta).^2) + ...
+   b^2 * sin_phi_s .* (sin(theta).^2) + ...
+   c^2 .* (cos(theta).^2)).^2 ;
+else
+   if(a == b & a ~= c)
+      rcs = (pi * b^4 * c^2) ./ ( b^2 .* (sin(theta).^2) + ...
+         c^2 .* (cos(theta).^2)).^2 ;
+   else
+      if (a == b & a ==c)
+         rcs = pi * c^2;
+      end
+   end
+end
+rcs_db = 10.0 * log10(rcs);
+ 
+plot((theta * 180 / pi),rcs_db);
+xlabel ('Aspect angle - degrees')
+ylabel ('RCS - dBsm')
+grid
+return
+    end
+   
+    
+
+        if(choice==2)
+        disp('circular plate')
+        freq=input('input freq');
+r=input('input r');
+lambda = 3.e+8 / freq % X-Band
+index = 0;
+for aspect_deg = 0.:.1:180
+   index = index +1;
+   aspect = (pi /180.) * aspect_deg; 
+% Compute RCS using Eq. (2.37)
+   if (aspect == 0 | aspect == pi)
+       rcs_po(index) = (4.0 * pi^3 * r^4 / lambda^2) + eps;
+       rcs_mu(index) = rcs_po(1);
+    else
+       x = (4. * pi * r / lambda) * sin(aspect);
+       val1 = 4. * pi^3 * r^4 / lambda^2;
+       val2 = 2. * besselj(1,x) / x;
+       rcs_po(index) = val1 * (val2 * cos(aspect))^2 + eps;
+% Compute RCS using Eq. (2.36)
+       val1m = lambda * r;
+       val2m = 8. * pi * sin(aspect) * (tan(aspect)^2);
+       rcs_mu(index) = val1m / val2m + eps;
+    end
+ end
+ % Compute RCS using Eq. (2.35) (theta=0,180)
+rcsdb = 10. * log10(rcs_po);
+rcsdb_mu = 10 * log10(rcs_mu);
+angle = 0:.1:180;
+plot(angle,rcsdb,'k',angle,rcsdb_mu,'k-.')
+grid;
+xlabel ('Aspect angle - degrees');
+ylabel ('RCS - dBsm');
+freqGH = num2str(freq*1.e-9);
+title (['Frequency = ',[freqGH],'  GHz']);
+        end  
+    
+
+         if (choice==3)
+    disp('cylinder')
+a1=input('input a1')
+h=input('input h')
+lambda = 3.0e+8 /9.5e+9;
+index = 0;
+for theta = 0.0:.1:90-.1
+   index = index +1;
+   theta = theta * pi /180.;
+   rcs(index) = (lambda * a1 * sin(theta) / ...
+      (8 * pi * (cos(theta))^2)) + eps;
+end
+theta*180/pi
+theta = pi/2;
+index = index +1
+rcs(index) = (2 * pi * h^2 * a1 / lambda )+ eps;
+for theta = 90+.1:.1:180.
+   index = index + 1;
+   theta = theta * pi / 180.;
+   rcs(index) = ( lambda * a1 * sin(theta) / ...
+      (8 * pi * (cos(theta))^2)) + eps;
+end
+%%%%%%%%%%%
+r = a1;
+index = 0;
+for aspect_deg = 0.:.1:180
+   index = index +1;
+   aspect = (pi /180.) * aspect_deg; 
+% Compute RCS using Eq. (2.37)
+   if (aspect == 0 | aspect == pi)
+       rcs_po(index) = (4.0 * pi^3 * r^4 / lambda^2) + eps;
+       rcs_mu(index) = rcs_po(1);
+    else
+       x = (4. * pi * r / lambda) * sin(aspect);
+       val1 = 4. * pi^3 * r^4 / lambda^2;
+       val2 = 2. * besselj(1,x) / x;
+       rcs_po(index) = val1 * (val2 * cos(aspect))^2 + eps;
+    end
+ end
+rcs_t =(rcs_po + rcs);
+ 
+%%%%%%%%%%%%%
+angle = 0:.1:180;
+plot(angle,10*log10(rcs_t(1:1801)));
+grid
+         end        
+
+
+   if (choice==4)
+       disp('isosceles figure')
+       a=input('input a');
+b=input('input b');
+A = a * b / 2.;
+freq=input('input freq')
+phi=(25*pi)/180;
+lambda = 3.e+8 / freq;
+ka = 2. * pi / lambda;
+kb = 2. *pi / lambda;
+% Compute theta vector
+theta_deg = 0.01:.05:89;
+theta = (pi /180.) .* theta_deg;
+alpha = ka * cos(phi) .* sin(theta);
+beta =  kb * sin(phi) .* sin(theta);
+if (phi == pi / 2)
+  rcs = (4. * pi * A^2 / lambda^2) .* cos(theta).^2 .* (sin(beta ./ 2)).^4 ...
+     ./ (beta./2).^4 + eps;
+end
+if (phi == 0)
+   rcs = (4. * pi * A^2 / lambda^2) .* cos(theta).^2 .* ...
+      ((sin(alpha).^4 ./ alpha.^4) + (sin(2 .* alpha) - 2.*alpha).^2 ...
+      ./ (4 .* alpha.^4)) + eps;
+end
+if (phi ~= 0 & phi ~= pi/2)
+   sigmao1 = 0.25 *sin(phi)^2 .* ((2. * a / b) * cos(phi) .* ...
+      sin(beta) - sin(phi) .* sin(2. .* alpha)).^2;
+   fact1 = (alpha).^2 - (.5 .* beta).^2;
+   fact2 = (sin(alpha).^2 - sin(.5 .* beta).^2).^2;
+   sigmao = (fact2 + sigmao1) ./ fact1;
+   rcs = (4. * pi * A^2 / lambda^2) .* cos(theta).^2 .* sigmao + eps;
+end
+rcsdb = 10. *log10(rcs);
+plot(theta_deg,rcsdb,'k','linewidth', 1.)
+xlabel ('Aspect angle - degrees');
+ylabel ('RCS - dBsm')
+grid
+   end
+
+
+ if (choice==5)
+     disp('velocity loss')
+     t = 0:0.001:.5;                 
+y = chirp(t,0,.25,20);
+figure(1)
+plot(t,y);
+yfft = fft(y,512) ;
+ycomp = fftshift(abs(ifft(yfft .* conj(yfft))));
+maxval = max (ycomp);
+ycomp = eps + ycomp ./ maxval; 
+figure(1)
+del = .5 /512.;
+tt = 0:del:.5-eps;
+plot (tt,ycomp,'k')
+axis tight
+xlabel ('Relative delay - seconds');
+ylabel('Normalized compressed pulse')
+grid
+%change center frequency
+y1 = chirp (t,0,.25,21);
+y1fft = fft(y1,512);
+y1comp = fftshift(abs(ifft(y1fft .* conj(yfft))));
+maxval = max (y1comp);
+y1comp = eps + y1comp ./ maxval; 
+figure(2)
+plot (tt,y1comp,'k')
+axis tight
+xlabel ('Relative delay - seconds');
+ylabel('Normalized compressed pulse')
+grid
+%change pulse width
+t = 0:0.001:.45;                 
+y2 = chirp (t,0,.225,20);
+y2fft = fft(y2,512);
+y2comp = fftshift(abs(ifft(y2fft .* conj(yfft))));
+maxval = max (y2comp);
+y2comp = eps + y2comp ./ maxval; 
+figure(3)
+plot (tt,y2comp,'k')
+axis tight
+xlabel ('Relative delay - seconds');
+ylabel('Normalized compressed pulse')
+grid
+
+ end
+    
+ if choice==6
+     disp('scanning loss')
+     d = 0.6; % element spacing in lambda units
+betadeg = linspace(0,22.5);
+beta = betadeg .*pi ./180;
+den = pi*d .* sin(beta);
+numarg = den;
+num = sin(numarg);
+lscan = (num./den).^-4;
+LSCAN = 10*log10(lscan);
+plot(betadeg,LSCAN)
+xlabel('scan angle in degrees')
+ylabel('Scan loss in dB')
+grid
+ end
+    if choice==7
+        disp('ssj requirements')
+        c = 3.0e+8;
+freq=3e6;
+loss=input('input loss  ');
+lossj=input('input loss jammer  ');
+sigma=input('input sigma  ');
+pt=input('input pt-peak power  ');
+b=input('input bandwidth  ');
+bj=input('input bandwidth jammer  ');
+pj=input('input power jammer  ');
+g=input('input gain  ');
+gj=input('input gain jammer  ');
+lambda = c / freq;
+lambda_db = 10*log10(lambda^2);
+sigmadb =10*log10(sigma);
+pt_db = 10*log10(pt);
+b_db = 10*log10(b);
+bj_db = 10*log10(bj);
+pj_db = 10*log10(pj);
+factor = 10*log10(4.0 *pi);
+BR_range = sqrt((pt * (10^(g/10)) * sigma * bj * (10^(lossj/10))) / ...
+   (4.0 * pi * pj * (10^(gj/10)) * b * ...
+   (10^(loss/10)))) / 1000.0  
+s_at_br = pt_db + 2.0 * g + lambda_db + sigmadb - ...
+      3.0 * factor - 4.* 10*log10(BR_range) - loss 
+index =0;
+for ran_var = .1:10:10000
+   index = index + 1;
+   ran_db = 10*log10(ran_var * 1000.0);
+   ssj(index) = pj_db + gj + lambda_db + g + b_db - 2.0 * factor - ...
+      2.0 * ran_db - bj_db - lossj + s_at_br ;
+   s(index) = pt_db + 2.0 * g + lambda_db + sigmadb - ...
+      3.0 * factor - 4.* ran_db - loss + s_at_br ;
+end
+ranvar = .1:10:10000;
+ranvar = ranvar ./ BR_range;
+semilogx (ranvar,s,'k',ranvar,ssj,'k-.');
+axis([.1 1000 -90 40])
+xlabel ('Range normalized to cross-over range');
+legend('Target echo','SSJ')
+ylabel ('Relative signal or jamming amplitude - dB');
+grid
+pj_var = 1:1:1000;
+BR_pj = sqrt((pt * (10^(g/10)) * sigma * bj * (10^(lossj/10))) ...
+   ./ (4.0 * pi .* pj_var * (10^(gj/10)) * b * (10^(loss/10)))) ./ 1000;
+pt_var = 1000:100:10e6;
+BR_pt = sqrt((pt_var * (10^(g/10)) * sigma * bj * (10^(lossj/10))) ...
+   ./ (4.0 * pi .* pj * (10^(gj/10)) * b * (10^(loss/10)))) ./ 1000;
+figure (2)
+subplot (2,1,1)
+semilogx (BR_pj,'k')
+xlabel ('Jammer peak power - Watts');
+ylabel ('Cross-over range - Km')
+grid
+subplot (2,1,2)
+semilogx (BR_pt,'k')
+xlabel ('Radar peak power - KW')
+ylabel ('Cross-over range - Km')
+grid
+    end 
+    if choice==8
+        disp('range reduction factor')
+        freq=3e6;
+k=1.38e-23;
+gj=5;
+g=6;
+pj=10;
+bj=500;
+rangej=15000;
+te=290;
+lossj=2.5;
+lambda = 3e8/ freq;
+gj_10 = 10^( gj/10);
+g_10 = 10^( g/10);
+lossj_10 = 10^(lossj/10);
+index = 0;
+for wavelength = .01:.001:1
+   index = index +1;
+   jamer_temp = (pj * gj_10 * g_10 *wavelength^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (rangej * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf(index) = 10^(-delta /40.0); 
+end
+w = 0.01:.001:1;
+semilogx(w,rrf,'k')
+grid
+xlabel ('Wavelength in meters')
+ylabel ('Range reduction factor')
+index = 0;
+return
+for ran =rangej*.3:10:rangej*2
+   index = index + 1;
+   jamer_temp = (pj * gj_10 * g_10 *lambda^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (ran * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf1(index) = 10^(-delta /40.0);
+end
+ranvar = rangej*.3:10:rangej*2 ;
+plot(ranvar,rrf1,'k')
+grid
+xlabel ('Radar to jammer range - Km')
+ylabel ('Range reduction factor')
+index = 0;
+for pjvar = pj*.01:100:pj*2
+   index = index + 1;
+   jamer_temp = (pjvar * gj_10 * g_10 *lambda^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (rangej * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf2(index) = 10^(-delta /40.0);
+end
+pjvar = pj*.01:100:pj*2;
+plot(pjvar,rrf2,'k')
+grid
+xlabel ('Jammer peak power - Watts')
+ylabel ('Range reduction factor')
+    end
+    if choice==9
+        disp('soj requirements')
+        freq=3e6;
+k=1.38e-23;
+gj=5;
+g=6;
+pj=10;
+bj=500;
+rangej=15000;
+te=290;
+lossj=2.5;
+lambda = 3e8/ freq;
+gj_10 = 10^( gj/10);
+g_10 = 10^( g/10);
+lossj_10 = 10^(lossj/10);
+index = 0;
+for wavelength = .01:.001:1
+   index = index +1;
+   jamer_temp = (pj * gj_10 * g_10 *wavelength^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (rangej * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf(index) = 10^(-delta /40.0); 
+end
+w = 0.01:.001:1;
+semilogx(w,rrf,'k')
+grid
+xlabel ('Wavelength in meters')
+ylabel ('Range reduction factor')
+index = 0;
+return
+for ran =rangej*.3:10:rangej*2
+   index = index + 1;
+   jamer_temp = (pj * gj_10 * g_10 *lambda^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (ran * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf1(index) = 10^(-delta /40.0);
+end
+ranvar = rangej*.3:10:rangej*2 ;
+plot(ranvar,rrf1,'k')
+grid
+xlabel ('Radar to jammer range - Km')
+ylabel ('Range reduction factor')
+index = 0;
+for pjvar = pj*.01:100:pj*2
+   index = index + 1;
+   jamer_temp = (pjvar * gj_10 * g_10 *lambda^2) / ...
+      (4.0^2 * pi^2 * k * bj * lossj_10 * (rangej * 1000.0)^2);
+   delta = 10.0 * log10(1.0 + (jamer_temp / te));
+   rrf2(index) = 10^(-delta /40.0);
+end
+pjvar = pj*.01:100:pj*2;
+plot(pjvar,rrf2,'k')
+grid
+xlabel ('Jammer peak power - Watts')
+ylabel ('Range reduction factor')
+    end
+    if choice==10
+        disp('kaiser window')
+        N = 32;
+win_rect (1:N) = 1;
+win_ham = hamming(N);
+win_han = hanning(N);
+win_kaiser = kaiser(N, pi);
+win_kaiser2 = kaiser(N, 5);
+Yrect = abs(fft(win_rect, 512));
+Yrectn = Yrect ./ max(Yrect);
+Yham = abs(fft(win_ham, 512));
+Yhamn = Yham ./ max(Yham);
+Yhan = abs(fft(win_han, 512));
+Yhann = Yhan ./ max(Yhan);
+YK = abs(fft(win_kaiser, 512));
+YKn = YK ./ max(YK);
+YK2 = abs(fft(win_kaiser2, 512));
+YKn2 = YK2 ./ max(YK2);
+figure (1)
+plot(20*log10(Yrectn+eps),'k')
+xlabel('Sample number')
+ylabel('20*log10(amplitude)')
+axis tight
+grid
+figure(2) 
+plot(20*log10(Yhamn + eps),'k')
+xlabel('Sample number')
+ylabel('20*log10(amplitude)')
+grid
+axis tight
+figure (3)
+plot(20*log10(Yhann+eps),'k')
+xlabel('Sample number')
+ylabel('20*log10(amplitude)')
+grid
+axis tight
+figure(4)
+plot(20*log10(YKn+eps),'k')
+grid
+hold on 
+plot(20*log10(YKn2+eps),'k--')
+xlabel('Sample number')
+ylabel('20*log10(amplitude)')
+legend('Kaiser par. = \pi','Kaiser par. =5') 
+axis tight
+hold off
+
+    end
+    end
+        
